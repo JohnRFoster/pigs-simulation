@@ -122,19 +122,19 @@ for(i in seq_along(density_tasks)){
               norm_rmse_p = rmse_p / mean(p),
               rmsle_p = sqrt(mean((log(value + 1) - log(p + 1))^2)))
 
-  area_summaries <- p_iter |>
+  area_summaries <- area_iter |>
     group_by(PPNum, N, take, method, effort_per, trap_count, theta, p,
              potential_area, property, county, property_area) |>
     summarise(low_area = quantile(value, 0.05),
               med_area = quantile(value, 0.5),
               high_area = quantile(value, 0.95),
               var_area = var(value),
-              mbias_area = mean(value - property_area),
-              rmse_area = sqrt(mean((value - property_area)^2)),
-              norm_rmse_area = rmse_area / mean(property_area),
-              rmsle_area = sqrt(mean((log(value + 1) - log(property_area + 1))^2)))
+              mbias_area = mean(value - potential_area),
+              rmse_area = sqrt(mean((value - potential_area)^2)),
+              norm_rmse_area = rmse_area / mean(potential_area),
+              rmsle_area = sqrt(mean((log(value + 1) - log(potential_area + 1))^2)))
 
-  theta_summaries <- p_iter |>
+  theta_summaries <- theta_iter |>
     group_by(PPNum, N, take, method, effort_per, trap_count, theta, p,
              potential_area, property, county, property_area) |>
     summarise(low_theta = quantile(value, 0.05),
