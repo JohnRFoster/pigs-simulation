@@ -68,6 +68,7 @@ my_linerange <- function(df){
     geom_linerange(linewidth = 2) +
     geom_linerange(aes(xmin = q1, xmax = q3), linewidth = 4) +
     geom_point(size = 7) +
+    geom_point(size = 5, color = "white") +
     geom_vline(xintercept = 0, linetype = "dashed") +
     labs(x = "Residual",
          y = "Method") +
@@ -83,9 +84,10 @@ b1_summary <- beta_1_known |>
 b1_summary |>
   ungroup() |>
   left_join(method_table) |>
-  my_linerange()
+  my_linerange() +
+  labs(title = "Intercept")
 
-ggsave("Plots/beta1_residual.jpeg", dpi = "print")
+ggsave("Plots/beta1_residual.jpeg", dpi = "retina", units = "in", width = 6, height = 4)
 
 
 beta_p_long <- samples |>
@@ -129,30 +131,23 @@ gamma_known <- left_join(gamma_long, known_params) |>
   mutate(log_gamma = log(gamma),
          residual = value - log_gamma)
 
-gamma_known |>
+g1 <- gamma_known |>
   group_by(method) |>
   mutate(value = residual) |>
   my_summary() |>
   ungroup() |>
-  my_linerange()
+  my_linerange() +
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        strip.text = element_text(size = 12))
 
 ggsave("Plots/gamma_residual.jpeg", dpi = "print")
-
-gamma_known |>
-  group_by(method, start_density) |>
-  mutate(value = residual) |>
-  my_summary() |>
-  ungroup() |>
-  my_linerange() +
-  facet_wrap(~ start_density)
-
-ggsave("Plots/gamma_residual_byDensity.jpeg", dpi = "print")
 
 gH <- gamma_known |>
   select(simulation, start_density, method, gamma, log_gamma) |>
   distinct()
 
-gamma_known |>
+g2 <- gamma_known |>
   group_by(simulation, start_density, method) |>
   mutate(value = exp(value)) |>
   my_summary() |>
@@ -167,9 +162,14 @@ gamma_known |>
   labs(x = "Known parameter value",
        y = "Posterior median") +
   theme_bw() +
-  my_theme()
+  theme(axis.title = element_text(size = 10),
+        axis.text = element_text(size = 8),
+        strip.text = element_text(size = 12))
 
 ggsave("Plots/gamma_medianVsKnown.jpeg", dpi = "print")
+
+ggarrange(g1, g2, nrow = 1, labels = "AUTO")
+ggsave("Plots/gamma_medianVsKnown.jpeg", dpi = "retina", units = "in", width = 6, height = 2)
 
 
 rho_long <- samples |>
@@ -181,7 +181,7 @@ rho_known <- left_join(rho_long, known_params) |>
   mutate(log_rho = log(rho),
          residual = value - log_rho)
 
-rho_known |>
+r1 <- rho_known |>
   group_by(method) |>
   mutate(value = residual) |>
   my_summary() |>
@@ -194,7 +194,7 @@ rH <- rho_known |>
   select(simulation, start_density, method, rho, log_rho) |>
   distinct()
 
-rho_known |>
+r2 <- rho_known |>
   group_by(simulation, start_density, method) |>
   mutate(value = exp(value)) |>
   my_summary() |>
@@ -202,16 +202,16 @@ rho_known |>
   left_join(rH) |>
   ggplot() +
   aes(x = rho, y = med) +
-  geom_point() +
+  geom_point(size = 0.5) +
   geom_smooth(method = "lm") +
   geom_abline(intercept = 0, slope = 1) +
   facet_wrap(~ method, scales = "free") +
   labs(x = "Known parameter value",
        y = "Posterior median") +
-  theme_bw() +
-  my_theme()
+  theme_bw()
 
-ggsave("Plots/rho_medianVsKnown.jpeg", dpi = "print")
+ggarrange(r1, r2, nrow = 1, labels = "AUTO")
+ggsave("Plots/rho_medianVsKnown.jpeg", dpi = "retina", units = "in", width = 6, height = 2)
 
 p_long <- samples |>
   select_pivot_longer("p_mu[") |>
@@ -223,7 +223,7 @@ p_known <- left_join(p_long, known_params) |>
   mutate(logit_p = boot::logit(p_unique),
          residual = value - logit_p)
 
-p_known |>
+p1 <- p_known |>
   group_by(method) |>
   mutate(value = residual) |>
   my_summary() |>
@@ -237,7 +237,7 @@ pH <- p_known |>
   select(simulation, start_density, method, p_unique, logit_p) |>
   distinct()
 
-p_known |>
+p2 <- p_known |>
   group_by(simulation, start_density, method) |>
   mutate(value = boot::inv.logit(value)) |>
   my_summary() |>
@@ -245,16 +245,17 @@ p_known |>
   left_join(pH) |>
   ggplot() +
   aes(x = p_unique, y = med) +
-  geom_point() +
+  geom_point(size = 0.25) +
   geom_smooth(method = "lm") +
   geom_abline(intercept = 0, slope = 1) +
   facet_grid(method ~ start_density, scales = "free") +
   labs(x = "Known parameter value",
        y = "Posterior median") +
   theme_bw() +
-  my_theme()
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
 
-ggsave("Plots/p_medianVsKnown.jpeg", dpi = "print")
+ggarrange(p1, p2, nrow = 1, labels = "AUTO", widths = c(1, 2))
+ggsave("Plots/p_medianVsKnown.jpeg", dpi = "retina", units = "in", width = 6, height = 2)
 
 
 phi_long <- samples |>
@@ -302,7 +303,7 @@ g4 <- blank <- ggplot() + geom_blank() + theme_void()
 gg2 <- ggarrange(g2, g4, nrow = 1, ncol = 2, widths = c(100, 1), labels = "C")
 
 ggarrange(gg1, gg2, nrow = 2)
-ggsave("Plots/vitalRates.jpeg", dpi = "print")
+ggsave("Plots/vitalRates.jpeg", dpi = "retina", units = "in", width = 6, height = 4)
 
 
 recover_summary <- function(df){
@@ -423,6 +424,21 @@ df |>
   theme_bw() +
   my_theme()
 
+df |>
+  filter(abundance > 0) |>
+  mutate(recovered = if_else(abundance >= low_abundance &
+                               abundance <= high_abundance,
+                             1, 0)) |>
+  group_by(start_density) |>
+  recover_summary()
+
+df |>
+  filter(abundance == 0) |>
+  mutate(recovered = if_else(abundance >= low_abundance &
+                               abundance <= high_abundance,
+                             1, 0)) |>
+  group_by(start_density) |>
+  recover_summary()
 
 abundance_file <- "abundance_error_by_property.rds"
 f_name <- abundance_file
@@ -500,7 +516,7 @@ take_by_property <- df |>
 
 
 property_error <- left_join(take_by_property, df_property)
-
+glimpse(property_error)
 
 
 # trends
@@ -561,8 +577,10 @@ property_error |>
 # need to to determine best properties and what is acceptable
 
 # best 5% in metric
-q <- 0.1
+q <- 0.05
 qb <- 0.10
+
+quantile(property_error$mpe_density, q)
 
 best_properties <- property_error |>
   filter(mpe_density <= quantile(mpe_density, q),
@@ -579,6 +597,8 @@ create_range_df <- function(df ,x){
     metric = x,
     min = df |> pull(x) |> min(),
     max = df |> pull(x) |> max(),
+    qmin = df |> pull(x) |> quantile(0.05),
+    qmax = df |> pull(x) |> quantile(0.95),
     median = df |> pull(x) |> median(),
     mean = df |> pull(x) |> mean(),
     sd = df |> pull(x) |> sd()
@@ -595,6 +615,7 @@ best_metrics <- bind_rows(
   create_range_df(best_properties, "effort"),
   create_range_df(best_properties, "unit_count")
 )
+best_metrics
 
 write_csv(best_metrics, "analysis/betaSurvival_uniqueAreaTrapSnare/best_metrics.csv")
 
@@ -606,20 +627,102 @@ summary(property_error$nm_rmse_density)
 summary(property_error$rmse_density)
 summary(property_error$mbias_density)
 
-thresh_mpe <- 50
-thresh_nrmse <- 1
-thresh_rmse <- 0.5
+thresh_mpe <- 25
+thresh_nrmse <- 0.5
+thresh_rmse <- 1
 thresh_bias <- 0.5
 
 acceptable_properties <- property_error |>
   filter(mpe_density <= thresh_mpe,
          nm_rmse_density <= thresh_nrmse,
-         rmse_density <= thresh_rmse,
+         # rmse_density <= thresh_rmse,
          mbias_density <= thresh_bias,
          mbias_density >= -1 * thresh_bias)
 
 nrow(acceptable_properties)
 nrow(acceptable_properties) / nrow(property_error) * 100
+
+
+acceptable <- property_error |>
+  mutate(acceptable = mpe_density <= thresh_mpe &
+           nm_rmse_density <= thresh_nrmse &
+           mbias_density <= thresh_bias &
+           mbias_density >= -1 * thresh_bias)
+
+
+abundance_file <- "abundance_summaries.rds"
+f_name <- abundance_file
+df <- map_files2(density_dirs, f_name)
+
+property_means <- df |>
+  # filter(abundance > 0) |>
+  left_join(property_ids) |>
+  group_by(property_id, start_density) |>
+  summarise(mu_known = mean(density),
+            mu_est = mean(med_density))
+
+left_join(acceptable, property_means) |>
+  select(acceptable, start_density) |>
+  filter(acceptable) |>
+  count(start_density)
+
+df_property_means <- left_join(acceptable, property_means)
+
+ggpoint <- function(df){
+  ggplot(df) +
+    aes(x = mu_known, y = mu_est) +
+    geom_point(size = 0.5) +
+    geom_abline(intercept = 0, slope = 1) +
+    labs(x = "Mean known density",
+         y = "Mean predicted density") +
+    coord_cartesian(xlim = c(0, 20),
+                    ylim = c(0, 30)) +
+    theme_bw() +
+    my_theme()
+}
+
+g1 <- df_property_means |>
+  ggpoint()
+g2 <- df_property_means |>
+  filter(acceptable) |>
+  ggpoint()
+
+ggarrange(g1, g2, ncol = 2, labels = "AUTO")
+
+acceptable |>
+  select(take, property_area, mpe_density, nm_rmse_density, mbias_density, acceptable) |>
+  # pivot_longer(cols = c(mpe_density, nm_rmse_density, mbias_density),
+  #              names_to = "error_metric",
+  #              values_to = "error_value") |>
+  # filter(error_metric == "nm_rmse_density") |>
+  ggplot() +
+  aes(x = nm_rmse_density, y = take, color = acceptable) +
+  geom_point() +
+  facet_wrap(~ acceptable) +
+  theme_bw()
+
+acceptable |>
+  select(property_area, take, n_total_events, n_observed_pp,
+         ts_length, proportion_observed, effort, unit_count, acceptable) |>
+  pivot_longer(cols = -acceptable,
+               names_to = "property_metric",
+               values_to = "value") |>
+  group_by(acceptable, property_metric) |>
+  my_summary() |>
+  filter(property_metric %in% c("property_area", "take", "proportion_observed")) |>
+  ggplot() +
+  aes(x = med, xmin = low, xmax = high, y = acceptable) +
+  geom_linerange(linewidth = 2) +
+  geom_linerange(aes(xmin = q1, xmax = q3), linewidth = 4) +
+  geom_point(size = 7) +
+  geom_point(size = 5, color = "white") +
+  facet_wrap(~ property_metric, scales = "free") +
+  labs(x = "Value",
+       y = "Acceptable property") +
+  theme_bw() +
+  my_theme()
+
+
 
 
 
@@ -633,6 +736,8 @@ acceptable_metrics <- bind_rows(
   create_range_df(acceptable_properties, "effort"),
   create_range_df(acceptable_properties, "unit_count")
 )
+
+acceptable_metrics
 
 write_csv(acceptable_metrics, "analysis/betaSurvival_uniqueAreaTrapSnare/acceptable_metrics.csv")
 

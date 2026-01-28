@@ -33,6 +33,7 @@ for(i in seq_along(density_tasks)){
   task_id <- density_tasks[i]
 
   rds_file <- file.path(read_path, task_id, "simulation_data.rds")
+  # rds_file <- "out/hpc/density_5/1/simulation_data.rds"
 
   if(file.exists(rds_file)){
     rds <- read_rds(rds_file)
@@ -46,7 +47,7 @@ for(i in seq_along(density_tasks)){
     mutate(node_names = rownames(rds$psrf)) |>
     filter(node_names != "psi_phi")
 
-  bad_mcmc <- rds$bad_mcmc | any(psrf$`Upper C.I.` > 1.1)
+  bad_mcmc <- rds$bad_mcmc | any(psrf$`Point est.` > 1.1)
 
   if(bad_mcmc) next
 

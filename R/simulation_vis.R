@@ -3,8 +3,6 @@ library(tidyr)
 library(ggplot2)
 library(readr)
 library(purrr)
-library(mgcv)
-library(lme4)
 
 analysis_dir <- "analysis"
 model_dir <- "betaSurvival_uniqueAreaTrapSnare"
@@ -75,15 +73,91 @@ take <- take_joint_return |>
 
 density_take <- left_join(density, take)
 
+# properties that do not go extinct
+extant_properties <- density_take |>
+  group_by(property_id) |>
+  filter(PPNum == max(PPNum),
+         density > 0) |>
+  pull(property_id)
+
+# properties that do go extinct
+extinct_properties <- density_take |>
+  group_by(property_id) |>
+  filter(PPNum == max(PPNum),
+         density == 0) |>
+  pull(property_id)
+
+all_properties <- unique(density_take$property_id)
+length(all_properties) == length(extinct_properties) + length(extant_properties)
+
+# need to join scores for when observations occurred
+scores_rds <- read_rds(file.path(analysis_dir, model_dir, "abundanceScoresByPrimaryPeriod.rds"))
+
+scores <- scores_rds |>
+  select(property_id, PPNum, mpe_density, mbias_density, rmse_density, nm_rmse_density,
+         contains("effort"), contains("unit"), recovered)
+
+
+density_scores <- left_join(density_take, scores)
+
+# want to know how properties change on average
+slopes <- tibble()
+pb <- txtProgressBar(min = 1, max = length(all_properties), style = 3)
+for(i in seq_along(all_properties)){
+  df <- density_take |> filter(property_id == all_properties[i])
+
+  # if(nrow(df) <= 4) next
+
+  m1 <- lm(density ~ PPNum, data = df)
+
+  dfm <- tibble(property_id = all_properties[i],
+                slope_known = m1$coefficients[2],
+                npp = nrow(df))
+
+  slopes <- bind_rows(slopes, dfm)
+  setTxtProgressBar(pb, i)
+}
+
+close(pb)
+
+slopes |>
+  filter(property_id %in% extant_properties) |>
+  mutate(cat = if_else(slope < 0, "Declining", "Increasing")) |>
+  pull(cat) |>
+  table()
+
+write_csv(slopes, "analysis/betaSurvival_uniqueAreaTrapSnare/densitySlopes.csv")
+
+# need to join property scores with slope
+
+
+
+
+# get the properties that have large jumps in density
+density_scores |>
+  filter(obs_flag == 1) |>
+  group_by(property_id) |>
+  mutate(delta = c(-100, diff(density))) |>
+  ungroup() |>
+  filter(delta != -100)
+
+# get low density properties
+density_threshold <- 2 # from Lewis et al. 2019 https://doi.org/10.1007/s10530-019-01983-1
+
+density_take |>
+  filter(property_id %in% extant_properties) |>
+  group_by(property_id) |>
+  summarise(mean_density = mean(density)) |>
+  ungroup() |>
+  filter(mean_density <= 2)
+
+
 max_change_properties <- density_take |>
   group_by(property_id) |>
   filter(PPNum == min(PPNum) | PPNum == max(PPNum)) |>
   summarise(delta_density = diff(density),
             delta_time = diff(PPNum)) |>
-  filter(delta_density == max(delta_density) |
-           delta_density == min(delta_density) |
-           delta_time == max(delta_time),
-         abs(delta_density) > 8) |>
+  filter(delta_density > 10 | delta_density < -10) |>
   pull(property_id)
 
 save_gg <- function(dest, gg, path){
@@ -101,11 +175,7 @@ save_gg <- function(dest, gg, path){
   )
 }
 
-extant_properties <- density_take |>
-  group_by(property_id) |>
-  filter(PPNum == max(PPNum),
-         density > 0) |>
-  pull(property_id)
+
 
 max_extant_properties <- density_take |>
   filter(property_id %in% extant_properties) |>
@@ -145,7 +215,24 @@ plot_timeseries <- function(df, property){
           legend.text = element_text(size = 13))
 }
 
-properties_2_plot <- unique(c(max_change_properties, max_extant_properties))
+
+
+summary(slopes$slope)
+
+slopes |>
+  filter(abs(slope_known) < 0.001) |>
+  filter(npp >= 20)
+
+density_take |>
+  plot_timeseries("0.3-102-45")
+
+properties_2_plot <- c(
+  "5-190-94",
+  "2.65-132-46" # constant
+  # "5-82-15",   # constantly increase
+  # "5-158-85",  # constantly increase
+  # "5-29-99"    # constantly decrease
+)
 
 for(i in seq_along(properties_2_plot)){
   gg <- density_take |>

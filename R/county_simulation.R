@@ -1,14 +1,13 @@
-
-
-
 N <- all_dynamics |>
   select(PPNum, N, property, county, property_area) |>
   distinct() |>
-  mutate(property = as.numeric(as.factor(property)),
-         density = N / property_area,
-         n_id = 1:n())
+  mutate(
+    property = as.numeric(as.factor(property)),
+    density = N / property_area,
+    n_id = 1:n()
+  )
 
-for(c in unique(N$county)){
+for (c in unique(N$county)) {
   data_county <- N |>
     select(-n_id) |>
     filter(county == c)
@@ -24,13 +23,11 @@ for(c in unique(N$county)){
 
   effort <- data_county |>
     group_by(PPNum) |>
-    summarise(area_sampled = sum(property_area),
-              total_pigs = sum(N)) |>
+    summarise(area_sampled = sum(property_area), total_pigs = sum(N)) |>
     ungroup() |>
     mutate(proportion_area_sampled = area_sampled / county_area)
 
-
-  process_model <- function(N, zeta, a_phi, b_phi){
+  process_model <- function(N, zeta, a_phi, b_phi) {
     phi <- rbeta(1, a_phi, b_phi)
     lambda <- N * zeta / 2 + N * phi
     rpois(1, lambda)
@@ -45,13 +42,13 @@ for(c in unique(N$county)){
   Nc <- rep(0, length(pp_seq))
 
   N_spin <- round(config$start_density * county_area) # initial abundance
-  for(i in 1:6){
+  for (i in 1:6) {
     N_spin <- process_model(N_spin, zeta, a_phi, b_phi)
   }
 
   Nc[1] <- N_spin
-  for(i in 2:length(pp_seq)){
-    Nc[i] <- process_model(Nc[i-1], zeta, a_phi, b_phi)
+  for (i in 2:length(pp_seq)) {
+    Nc[i] <- process_model(Nc[i - 1], zeta, a_phi, b_phi)
   }
 
   latent_population <- tibble(
@@ -71,8 +68,7 @@ for(c in unique(N$county)){
 
   M <- N_county |>
     select(PPNum, N, property) |>
-    pivot_wider(names_from = property,
-                values_from = N) |>
+    pivot_wider(names_from = property, values_from = N) |>
     right_join(county_population) |>
     arrange(PPNum) |>
     left_join(effort) |>
@@ -81,13 +77,4 @@ for(c in unique(N$county)){
 
   print(c)
   print(cor(M$proportion_pigs_sample, M$proportion_area_sampled))
-
 }
-
-
-
-
-
-
-
-

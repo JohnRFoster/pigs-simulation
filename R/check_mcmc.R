@@ -1,5 +1,4 @@
-check_mcmc <- function(samples, nodes_check, n_mcmc, dest){
-
+check_mcmc <- function(samples, nodes_check, n_mcmc, dest) {
   require(coda)
 
   all_nodes <- colnames(samples[[1]])
@@ -7,7 +6,7 @@ check_mcmc <- function(samples, nodes_check, n_mcmc, dest){
 
   j <- unlist(lapply(nodes_check, function(x) grep(x, all_nodes)))
 
-  params <- samples[,j]
+  params <- samples[, j]
 
   message("Calculating PSRF...")
   psrf <- gelman.diag(params, multivariate = FALSE)
@@ -37,5 +36,4 @@ check_mcmc <- function(samples, nodes_check, n_mcmc, dest){
     converged = max(psrf$psrf[, "Upper C.I."]) <= 1.1,
     bad_mcmc = any(is.na(psrf$psrf)) | any(psrf$psrf > 3)
   )
-
 }

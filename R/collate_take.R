@@ -26,7 +26,9 @@ all_y <- tasks_ls$all_y
 all_take <- tasks_ls$all_take
 
 path <- get_path("write", config_name, task_id)
-if(!dir.exists(path)) dir.create(path, recursive = TRUE, showWarnings = FALSE)
+if (!dir.exists(path)) {
+	dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
 
 write_rds(all_take, file.path(path, "all_take.rds"))
 
@@ -39,7 +41,10 @@ message("\nposterior take summaries done\n")
 
 error_by_observation <- tasks_ls$all_by_observation
 
-write_rds(error_by_observation, file.path(path, "take_error_by_observation.rds"))
+write_rds(
+	error_by_observation,
+	file.path(path, "take_error_by_observation.rds")
+)
 message("\nposterior take error by observation done\n")
 
 take_effort_summary <- tasks_ls$all_effort_summary
@@ -59,7 +64,10 @@ message("\nposterior take error by observation done\n")
 
 error_by_simulation_method <- tasks_ls$all_by_simulation_method
 
-write_rds(error_by_simulation_method, file.path(path, "take_error_by_simulation_method.rds"))
+write_rds(
+	error_by_simulation_method,
+	file.path(path, "take_error_by_simulation_method.rds")
+)
 rm(error_by_simulation_method)
 gc()
 message("\nposterior take error by simulation method done\n")
@@ -72,6 +80,4 @@ gc()
 message("\nposterior take error by property done\n")
 
 
-
 message("=== TAKE DONE ===")
-

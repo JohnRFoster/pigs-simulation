@@ -13,14 +13,23 @@ project_dir <- config$project_dir
 start_density <- config$start_density
 density_dir <- paste0("density_", start_density)
 
-path <- file.path(top_dir, project_dir, out_dir, dev_dir, model_dir, density_dir)
+path <- file.path(
+  top_dir,
+  project_dir,
+  out_dir,
+  dev_dir,
+  model_dir,
+  density_dir
+)
 message("Simulations will be written to\n   ", path)
 
 task_id <- Sys.getpid()
 message("  Task ID: ", task_id)
 
 dest <- file.path(path, task_id)
-if(!dir.exists(dest)) dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+if (!dir.exists(dest)) {
+  dir.create(dest, recursive = TRUE, showWarnings = FALSE)
+}
 
 # need a lookup table for property IDs and how may methods they employ ----
 n_method_lookup <- df |>
@@ -32,15 +41,14 @@ n_method_lookup <- df |>
 # for determining the number of properties to simulate
 n_rel <- n_method_lookup |>
   count(n, name = "n_sum") |>
-  mutate(rel_prop = n_sum / sum(n_sum),
-         n_simulate = ceiling(rel_prop * 100))
+  mutate(rel_prop = n_sum / sum(n_sum), n_simulate = ceiling(rel_prop * 100))
 
 # -----------------------------------------------------------------
 # 1-method properties ----
 # -----------------------------------------------------------------
 message("Create 1-method properties")
 source("R/one_method_properties.R")
-n_pp <- config$n_pp       # the number of primary periods to simulate
+n_pp <- config$n_pp # the number of primary periods to simulate
 method_1 <- one_method_properties(df, n_rel$n_simulate[1], n_pp)
 
 # -----------------------------------------------------------------
@@ -100,12 +108,20 @@ method_lookup <- tibble(
   idx = 1:5,
   method = c("Firearms", "Fixed wing", "Helicopter", "Snares", "Traps"),
   p_unique = c(runif(1), 0, 0, runif(2)),
-  rho = c(runif(1, 0.01, 5), # firearms; p_mu[1]
-          runif(1, 1, 200),   # fixed wing
-          runif(1, 1, 200),   # helicopter
-          runif(1, 0.1, 15),  # snare; gamma[1], p_mu[2]
-          runif(1, 0.1, 15)), # traps; gamma[2], p_mu[3]
-  gamma = c(0, 0, 0, rgamma(1, 7.704547, 4.41925), rgamma(1, 3.613148, 3.507449))
+  rho = c(
+    runif(1, 0.01, 5), # firearms; p_mu[1]
+    runif(1, 1, 200), # fixed wing
+    runif(1, 1, 200), # helicopter
+    runif(1, 0.1, 15), # snare; gamma[1], p_mu[2]
+    runif(1, 0.1, 15)
+  ), # traps; gamma[2], p_mu[3]
+  gamma = c(
+    0,
+    0,
+    0,
+    rgamma(1, 7.704547, 4.41925),
+    rgamma(1, 3.613148, 3.507449)
+  )
 )
 
 message("Data model parameters")
@@ -119,18 +135,20 @@ message("Simulate swine dynamics")
 source("R/eco_dynamics.R")
 all_dynamics <- 1:n_properties |>
   map(
-    \(x) simulate_dm(
-      properties[[x]],
-      x,
-      order_county[x],
-      phi_mu,
-      psi_phi,
-      land_cover[order_county[x], ],
-      beta_p,
-      start_density,
-      method_lookup,
-      file.path(top_dir, data_dir, "insitu/effort_data.csv")
-    )
+    \(x) {
+      simulate_dm(
+        properties[[x]],
+        x,
+        order_county[x],
+        phi_mu,
+        psi_phi,
+        land_cover[order_county[x], ],
+        beta_p,
+        start_density,
+        method_lookup,
+        file.path(top_dir, data_dir, "insitu/effort_data.csv")
+      )
+    }
   ) |>
   compact() |> # some properties will be empty because they go extinct during spin-up
   list_rbind()
@@ -138,9 +156,11 @@ all_dynamics <- 1:n_properties |>
 N <- all_dynamics |>
   select(PPNum, N, property, county, property_area) |>
   distinct() |>
-  mutate(property = as.numeric(as.factor(property)),
-         density = N / property_area,
-         n_id = 1:n())
+  mutate(
+    property = as.numeric(as.factor(property)),
+    density = N / property_area,
+    n_id = 1:n()
+  )
 
 take <- all_dynamics |>
   filter(!is.na(take)) |>
@@ -171,11 +191,11 @@ source("R/inits.R")
 inits_test <- inits(data, constants)
 
 custom_samplers <- tribble(
-  ~node,            ~type,
-  "log_nu",         "slice",
-  "phi_mu",         "slice",
-  "psi_phi",        "slice",
-  "log_rho",        "AF_slice"
+  ~node     , ~type      ,
+  "log_nu"  , "slice"    ,
+  "phi_mu"  , "slice"    ,
+  "psi_phi" , "slice"    ,
+  "log_rho" , "AF_slice"
 )
 
 source("R/model_removal_dm.R")
@@ -185,7 +205,13 @@ monitors_add <- c("xn", "p", "log_theta")
 n_iter <- config$n_iter
 n_chains <- config$n_chains
 
-message("Fitting MCMC with ", n_iter, " iterations across ", n_chains, " chains")
+message(
+  "Fitting MCMC with ",
+  n_iter,
+  " iterations across ",
+  n_chains,
+  " chains"
+)
 
 source("R/fit_mcmc.R")
 samples <- fit_mcmc(

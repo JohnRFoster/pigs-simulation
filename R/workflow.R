@@ -46,8 +46,7 @@ df <- read_rds(file.path(top_dir, data_dir, "insitu/MIS_4weekPP.rds"))
 df <- df |>
   filter(property.size >= 1.8) |> # median home range size from Kay et al. (2017)
   select(-method) |>
-  rename(property = agrp_prp_id,
-         method = Method)
+  rename(property = agrp_prp_id, method = Method)
 
 # -----------------------------------------------------------------
 # Run simulation ----
@@ -71,4 +70,3 @@ message("\nRun time: ")
 print(Sys.time() - start)
 
 message("\n\nDONE!")
-

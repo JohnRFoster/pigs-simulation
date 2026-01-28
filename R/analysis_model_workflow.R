@@ -1,6 +1,5 @@
 ## workflow for fitting gradient boosting on nbaf hpc
 
-
 start_time <- Sys.time()
 
 Sys.setenv(RENV_CONFIG_SANDBOX_ENABLED = FALSE)
@@ -40,12 +39,14 @@ data <- read_rds(file.path(path, "abundanceScoresByPrimaryPeriod.rds")) |>
   mutate(mbias_density_class = as.numeric(mbias_density > 0)) |>
   rename(mbias_density_reg = mbias_density)
 
-responses <- c("nm_rmse_density",
-               "mpe_density",
-               "mbias_density_reg",
-               "mbias_density_class",
-               "med_density",
-               "var_density")
+responses <- c(
+  "nm_rmse_density",
+  "mpe_density",
+  "mbias_density_reg",
+  "mbias_density_class",
+  "med_density",
+  "var_density"
+)
 
 eta_grid <- tibble(
   responses = responses,
@@ -68,7 +69,9 @@ hyper_grid <- expand_grid(
 
 args <- commandArgs(trailingOnly = TRUE)
 task_id <- as.numeric(args[1])
-if(is.na(task_id)) task_id <- 5
+if (is.na(task_id)) {
+  task_id <- 5
+}
 message("task id: ", task_id)
 
 task_grid <- eta_grid |>
@@ -96,8 +99,10 @@ array_grid <- array_grid |>
 
 df_model <- subset_rename(data, y, 1100)
 
-baked_data <- my_recipe(df_model$train |> select(-PPNum, -property, -property_id, -simulation_id),
-                        df_model$test |> select(-PPNum, -property, -property_id, -simulation_id))
+baked_data <- my_recipe(
+  df_model$train |> select(-PPNum, -property, -property_id, -simulation_id),
+  df_model$test |> select(-PPNum, -property, -property_id, -simulation_id)
+)
 
 train_data <- baked_data$df_train
 X <- train_data |>
@@ -105,13 +110,16 @@ X <- train_data |>
   as.matrix()
 Y <- train_data |> pull(y)
 
-objective <- if_else(y == "mbias_density_class", "binary:logistic", "reg:squarederror")
+objective <- if_else(
+  y == "mbias_density_class",
+  "binary:logistic",
+  "reg:squarederror"
+)
 objective <- "reg:tweedie"
 
-fit_xgBoost <- function(i, array_grid, n_threads){
-
+fit_xgBoost <- function(i, array_grid, n_threads) {
   set.seed(123)
-  out_grid <- array_grid[i,]
+  out_grid <- array_grid[i, ]
   m <- xgb.cv(
     data = X,
     label = Y,
@@ -139,16 +147,23 @@ fit_xgBoost <- function(i, array_grid, n_threads){
   out_grid
 }
 
-path <- file.path(top_dir, project_dir, analysis_dir, dev_dir, "gradientBoosting")
+path <- file.path(
+  top_dir,
+  project_dir,
+  analysis_dir,
+  dev_dir,
+  "gradientBoosting"
+)
 
 message("Begin grid search...")
-for(j in seq_len(n_loops)){
-
+for (j in seq_len(n_loops)) {
   model_time <- Sys.time()
 
   filename <- file.path(path, paste0(j, "_", y, "_xgbTree_tweedie.rds"))
 
-  if(file.exists(filename)) next
+  if (file.exists(filename)) {
+    next
+  }
 
   J <- array_grid |> filter(task == j)
 
@@ -160,7 +175,7 @@ for(j in seq_len(n_loops)){
     .combine = rbind,
     .inorder = FALSE,
     .packages = c("xgboost")
-    ) %dopar%
+  ) %dopar%
     fit_xgBoost(i, J, n_threads) |>
     suppressPackageStartupMessages() |>
     as_tibble()
@@ -172,7 +187,6 @@ for(j in seq_len(n_loops)){
   total_time <- Sys.time() - model_time
   message("\n[", j, "/", n_loops, "]")
   print(round(total_time, 2))
-
 }
 
 message("Grid seach complete!")
@@ -197,6 +211,3 @@ message("=== DONE ===\n\n")
 total_time <- Sys.time() - start_time
 message("Elapsed time: ")
 print(total_time)
-
-
-

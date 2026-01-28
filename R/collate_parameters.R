@@ -32,7 +32,9 @@ all_psrf <- tasks_ls$all_psrf
 all_land_cover <- tasks_ls$all_land_cover
 
 path <- get_path("write", config_name, task_id)
-if(!dir.exists(path)) dir.create(path, recursive = TRUE, showWarnings = FALSE)
+if (!dir.exists(path)) {
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
 
 write_rds(all_methods, file.path(path, "method_parameter_lookup.rds"))
 write_rds(all_land_cover, file.path(path, "land_cover_lookup.rds"))
@@ -72,8 +74,10 @@ residual_list <- list()
 ## capture probability intercepts ------
 beta1_long <- all_samples |>
   select_pivot_longer("beta1") |>
-  mutate(method_idx = as.numeric(str_extract(node, "(?<=\\[)\\d")),
-         position = 1)
+  mutate(
+    method_idx = as.numeric(str_extract(node, "(?<=\\[)\\d")),
+    position = 1
+  )
 
 recovery_list$beta1 <- recov_beta1(beta1_long, all_psrf)
 residual_list$beta1 <- resid_beta1(beta1_long)
@@ -83,8 +87,10 @@ message("\ncapture intercepts done\n")
 ## capture probability covariates ------
 beta_p_long <- all_samples |>
   select_pivot_longer("beta_p") |>
-  mutate(method_idx = as.numeric(str_extract(node, "(?<=\\[)\\d")),
-         position = as.numeric(str_extract(node, "(?<=\\, )\\d")) + 1)
+  mutate(
+    method_idx = as.numeric(str_extract(node, "(?<=\\[)\\d")),
+    position = as.numeric(str_extract(node, "(?<=\\, )\\d")) + 1
+  )
 
 recovery_list$beta_p <- recov_beta_p(beta_p_long, all_psrf)
 residual_list$beta_p <- resid_beta_p(beta_p_long)
@@ -114,7 +120,7 @@ rH <- all_methods |>
   select(idx, rho, method, simulation) |>
   rename(actual = rho)
 
-rho_long<- all_samples |>
+rho_long <- all_samples |>
   select_pivot_longer("log_rho[") |>
   mutate(idx = as.numeric(str_extract(node, "(?<=\\[)\\d"))) |>
   mutate(value = exp(value))

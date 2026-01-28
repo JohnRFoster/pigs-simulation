@@ -31,8 +31,10 @@ data <- read_rds(file.path(path, "abundanceScoresByPrimaryPeriod.rds")) |>
 
 df_model <- subset_rename(data, ylab, 1100)
 
-split_train <- df_model$train |> select(-PPNum, -property, -property_id, -simulation_id)
-split_test <- df_model$test |> select(-PPNum, -property, -property_id, -simulation_id)
+split_train <- df_model$train |>
+  select(-PPNum, -property, -property_id, -simulation_id)
+split_test <- df_model$test |>
+  select(-PPNum, -property, -property_id, -simulation_id)
 
 # split_test <- data |>
 #   rename(y = all_of(ylab),
@@ -44,8 +46,7 @@ split_test <- df_model$test |> select(-PPNum, -property, -property_id, -simulati
 
 # predict to all data not in training set!
 
-train_best_pred <- function(data_train, data_test, y, best_model){
-
+train_best_pred <- function(data_train, data_test, y, best_model) {
   baked_data <- my_recipe(data_train, data_test)
   train <- baked_data$df_train
   test <- baked_data$df_test
@@ -69,7 +70,11 @@ train_best_pred <- function(data_train, data_test, y, best_model){
     as.matrix()
   Y <- train |> pull(y)
 
-  objective <- if_else(y == "mbias_density_class", "binary:logistic", "reg:squarederror")
+  objective <- if_else(
+    y == "mbias_density_class",
+    "binary:logistic",
+    "reg:squarederror"
+  )
   # objective <- "reg:tweedie"
 
   # train final model
@@ -106,14 +111,17 @@ train_best_pred <- function(data_train, data_test, y, best_model){
       vi = vi
     )
   )
-
 }
 
-partial_dependence <- function(col, train_dat, fit){
-
-  df <- pdp::partial(fit, col, train = train_dat, plot = FALSE, parallel = FALSE)
+partial_dependence <- function(col, train_dat, fit) {
+  df <- pdp::partial(
+    fit,
+    col,
+    train = train_dat,
+    plot = FALSE,
+    parallel = FALSE
+  )
   as_tibble(df)
-
 }
 
 best_pred <- train_best_pred(split_train, split_test, ylab, best_model)
@@ -127,7 +135,7 @@ message("Single dependence...")
 col <- best_pred$vi$Feature[best_pred$vi$gainRelative >= 0.1]
 single_dependence <- list()
 pb <- txtProgressBar(max = length(col), style = 3)
-for(i in seq_along(col)){
+for (i in seq_along(col)) {
   pdp_s <- partial_dependence(col[i], df_train, fit)
   single_dependence[[col[i]]] <- pdp_s
   setTxtProgressBar(pb, i)
@@ -148,7 +156,3 @@ dest <- file.path(path, paste0(ylab, "_xgBoostAnalysis.rds"))
 write_rds(out, dest)
 
 message("Done!")
-
-
-
-
