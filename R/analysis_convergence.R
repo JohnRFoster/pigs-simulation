@@ -2,8 +2,6 @@ library(dplyr)
 library(tidyr)
 library(readr)
 library(purrr)
-library(ggplot2)
-library(ggpubr)
 library(lubridate)
 
 
