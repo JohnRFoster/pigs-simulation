@@ -64,26 +64,9 @@ for (i in seq_along(density_tasks)) {
 			sim_died = FALSE
 		)
 
-		all_beta_p <- bind_beta_p(all_beta_p, rds, task_id, start_density) |>
-			mutate(node_names = paste0("beta_p[", method_idx, ", ", position, "]")) |>
-			left_join(method_h, by = "method_idx")
+		all_beta_p <- bind_beta_p(all_beta_p, rds, task_id, start_density)
 
-		all_methods <- bind_methods(all_methods, rds, task_id, start_density) |>
-			pivot_longer(
-				cols = c(p_unique, rho, gamma),
-				names_to = "parameter",
-				values_to = "actual",
-				values_drop_na = TRUE
-			) |>
-			mutate(
-				node_names = case_when(
-					parameter == "p_unique" ~ paste0("p_mu[", idx - 3, "]"),
-					parameter == "rho" ~ paste0("log_rho[", idx, "]"),
-					parameter == "gamma" ~ paste0("log_gamma[", idx - 3, "]")
-				)
-			) |>
-			rename(method_idx = idx) |>
-			select(-parameter)
+		all_methods <- bind_methods(all_methods, rds, task_id, start_density)
 
 		lc <- rds2$land_cover
 		colnames(lc) <- 1:3
@@ -117,6 +100,27 @@ path <- get_path("write", config_name, array_id)
 if (!dir.exists(path)) {
 	dir.create(path, recursive = TRUE, showWarnings = FALSE)
 }
+
+all_methods <- all_methods |>
+	pivot_longer(
+		cols = c(p_unique, rho, gamma),
+		names_to = "parameter",
+		values_to = "actual",
+		values_drop_na = TRUE
+	) |>
+	mutate(
+		node_names = case_when(
+			parameter == "p_unique" ~ paste0("p_mu[", idx - 3, "]"),
+			parameter == "rho" ~ paste0("log_rho[", idx, "]"),
+			parameter == "gamma" ~ paste0("log_gamma[", idx - 3, "]")
+		)
+	) |>
+	rename(method_idx = idx) |>
+	select(-parameter)
+
+all_beta_p <- all_beta_p |>
+	mutate(node_names = paste0("beta_p[", method_idx, ", ", position, "]")) |>
+	left_join(method_h, by = "method_idx")
 
 all_params <- bind_rows(all_beta_p, all_methods)
 write_rds(all_methods, file.path(all_params, "all_known_parameters.rds"))
