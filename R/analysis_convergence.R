@@ -123,7 +123,7 @@ all_beta_p <- all_beta_p |>
 	left_join(method_h, by = "method_idx")
 
 all_params <- bind_rows(all_beta_p, all_methods)
-write_rds(all_methods, file.path(all_params, "all_known_parameters.rds"))
+write_rds(all_params, file.path(path, "all_known_parameters.rds"))
 
 write_rds(all_land_cover, file.path(path, "all_land_cover_lookup.rds"))
 write_rds(all_psrf, file.path(path, "all_psrf.rds"))
