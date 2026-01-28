@@ -47,3 +47,15 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+*.html
+*.txt
+*.rds
+
+analysis/
+out/
+Plots/
+xgBoost_notebook_files/
+.vscode/
+
+.lintr
